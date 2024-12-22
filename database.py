@@ -13,6 +13,7 @@ def init_db():
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     url TEXT NOT NULL,
                     headline TEXT,
+                    subheader TEXT,
                     description TEXT,
                     scraping_date DATETIME DEFAULT CURRENT_TIMESTAMP
                 )

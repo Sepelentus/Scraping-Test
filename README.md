@@ -35,8 +35,11 @@ The endpoints work via URL, so open a program like Postman (or use curl) and use
 
 ### /scrape (POST)
 IF USING POSTMAN, YOU NEED TO TYPE THE URL THIS WAY ON THE BODY (raw)
+```
 {
     "url": "your-url-here"
 }
+```
 > Postman: http://127.0.0.1:5000/scrape
+IF USING CURL, USE THIS (CHANGE THE URL TO THE DESIRED ONE)
 > curl: curl -X POST http://127.0.0.1:5000/scrape -H "Content-Type: application/json" -d '{"url":"your-url-here"}'

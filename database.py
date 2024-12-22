@@ -14,6 +14,7 @@ def init_db():
                     url TEXT NOT NULL,
                     headline TEXT,
                     subheader TEXT,
+                    subsubheaders TEXT,
                     description TEXT,
                     scraping_date DATETIME DEFAULT CURRENT_TIMESTAMP
                 )

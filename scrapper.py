@@ -20,37 +20,57 @@ def scrape():
         # Realizar scraping
         response = requests.get(url)
         soup = BeautifulSoup(response.text, 'html.parser')
-        # Extrae el encabezado y la descripción de la página, utilizando las etiquetas h1, h2 y p como identificadores
-        headlines = [h.get_text(strip=True) for h in soup.find_all('h1')]
-        subheaders = [h.get_text(strip=True) for h in soup.find_all('h2')]
-        descriptions = [p.get_text(strip=True) for p in soup.find_all('p')]
-        # Nota, se debe tomar en cuenta para el futuro que no todas las páginas web tienen un encabezado h1 o una descripción con etiqueta p.
-        # En esos casos, revisar la posibilidad de buscar por etiquetas mas generica como title o meta.
 
-        # En la base de datos, no se permite listas, por lo que se convierten a cadenas de texto
-        max_length = max(len(headlines), len(subheaders), len(descriptions))
-        headlines = headlines + [''] * (max_length - len(headlines))
-        subheaders = subheaders + [''] * (max_length - len(subheaders))
-        descriptions = descriptions + [''] * (max_length - len(descriptions))
-    
+        # Eliminar elementos no deseados (navegación, pie de página, etc.)
+        for element in soup(['nav', 'footer']):
+            element.decompose()
+        # Variables para mantener el encabezado actual, ya que se pueden encontrar varios niveles de encabezados y de esta manera se puede mantener la jerarquía y orden del contenido
+        current_h1 = ""
+        current_h2 = ""
+        current_h3 = ""
+
+        # Lista para almacenar los resultados estructurados
+        structured_data = []
+
+        # Recorrer todos los elementos relevantes en orden, para mantener la jerarquía y se entienda mejor el contenido
+        for element in soup.find_all(['h1', 'h2', 'h3', 'p']):
+            text = element.get_text(strip=True)
+            # Ignorar elementos no deseados (vacíos, puntos, etc.)
+            if text in ['.', '']:
+                continue
+
+            if element.name == 'h1':
+                current_h1 = text
+                current_h2 = ""  # Reiniciar h2 y h3 al encontrar un nuevo h1
+                current_h3 = ""
+            elif element.name == 'h2':
+                current_h2 = text
+                current_h3 = ""  # Reiniciar h3 al encontrar un nuevo h2
+            elif element.name == 'h3':
+                current_h3 = text
+            elif element.name == 'p':
+                # Asociar el párrafo al encabezado actual
+                structured_data.append({
+                    'url': url,
+                    'headline': current_h1,
+                    'subheader': current_h2,
+                    'subsubheader': current_h3,
+                    'description': text
+                })
+
         # Guardar resultados en la base de datos
         conn = get_db_connection()
         c = conn.cursor()
         scraped_data = []
-        
-        # Se insertan los resultados en la tabla scrape_results, ciclando sobre las listas de encabezados, subencabezados y descripciones
-        for headline, subheader, description in zip(headlines, subheaders, descriptions):
+
+        for row in structured_data:
             c.execute('''
-                INSERT INTO scrape_results (url, headline, subheader, description)
-                VALUES (?, ?, ?, ?)
-            ''', (url, headline, subheader, description))
-            # Guardado de datos para la respuesta
-            scraped_data.append({
-                'url': url,
-                'headline': headline,
-                'subheader': subheader,
-                'description': description
-            })
+                INSERT INTO scrape_results (url, headline, subheader, subsubheaders, description)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (row['url'], row['headline'], row['subheader'], row['subsubheader'], row['description']))
+
+            # Agregar a la lista de datos a devolver
+            scraped_data.append(row)
 
         conn.commit()
         conn.close()

@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from database import init_db, get_db_connection
 import requests
 from bs4 import BeautifulSoup
+from transformers import pipeline
 
 app = Flask(__name__)
 
@@ -78,6 +79,34 @@ def scrape():
         return jsonify({'error': str(e)}), 500
 
     return jsonify({"status": "success", "data": scraped_data}), 200
+
+# Ruta de modelo de IA para procesar el texto y resumirlo
+@app.route('/process', methods=['POST'])
+def process():
+    text = request.json.get('text')
+    if not text:
+        return jsonify({'error': 'Text is required'}), 400
+
+    try:
+        # Inicializar modelo de IA para resumir texto
+        summarizer = pipeline('summarization')
+
+        # Resumir texto
+        summary = summarizer(text, max_length=100, min_length=5, do_sample=False)
+
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute('''
+            INSERT INTO processed_results (input_text, output_text)
+            VALUES (?, ?)
+        ''', (text, summary[0]['summary_text']))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"status": "success",
+                        "summary": summary[0]['summary_text']}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

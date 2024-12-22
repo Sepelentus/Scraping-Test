@@ -19,6 +19,16 @@ def init_db():
                     scraping_date DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
+        # Tabla de resultados procesados
+        c.execute('''
+                CREATE TABLE processed_results(
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    input_text TEXT NOT NULL,
+                    output_text TEXT NOT NULL,
+                    processing_date DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+
         conn.commit()
         conn.close()
         print('Database created')

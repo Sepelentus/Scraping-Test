@@ -89,22 +89,30 @@ def process():
 
     try:
         # Inicializar modelo de IA para resumir texto
+        translator_to_english = pipeline("translation", model="Helsinki-NLP/opus-mt-es-en")
+        translator_to_spanish = pipeline("translation", model="Helsinki-NLP/opus-mt-en-es")
         summarizer = pipeline('summarization')
 
-        # Resumir texto
-        summary = summarizer(text, max_length=100, min_length=5, do_sample=False)
+         # Translate text to English
+        translated_text = translator_to_english(text)[0]['translation_text']
+
+        # Summarize the translated text
+        summary_in_english = summarizer(translated_text, max_length=100, min_length=5, do_sample=False)[0]['summary_text']
+
+        # Translate the summary back to Spanish
+        summary_in_spanish = translator_to_spanish(summary_in_english)[0]['translation_text']
 
         conn = get_db_connection()
         c = conn.cursor()
         c.execute('''
             INSERT INTO processed_results (input_text, output_text)
             VALUES (?, ?)
-        ''', (text, summary[0]['summary_text']))
+        ''', (text, summary_in_spanish))
         conn.commit()
         conn.close()
-        
+
         return jsonify({"status": "success",
-                        "summary": summary[0]['summary_text']}), 200
+                        "summary": summary_in_spanish}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

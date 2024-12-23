@@ -28,7 +28,16 @@ def init_db():
                     processing_date DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
-
+        c.execute('''
+                CREATE TABLE combined_results(
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    url TEXT NOT NULL,
+                    description TEXT,
+                    input_text TEXT NOT NULL,
+                    output_text TEXT NOT NULL,
+                    combining_date DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
         conn.commit()
         conn.close()
         print('Database created')

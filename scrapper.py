@@ -16,7 +16,6 @@ def scrape():
     url = request.json.get('url')
     if not url:
         return jsonify({'error': 'URL is required'}), 400
-
     try:
         # Realizar scraping
         response = requests.get(url)
@@ -91,15 +90,13 @@ def process():
         # Inicializar modelo de IA para resumir texto
         translator_to_english = pipeline("translation", model="Helsinki-NLP/opus-mt-es-en")
         translator_to_spanish = pipeline("translation", model="Helsinki-NLP/opus-mt-en-es")
+        # Definirle luego un modelo de resumen, actualmente utiliza el modelo sshleifer/distilbart-cnn-12-6, revision a4f8f3e
         summarizer = pipeline('summarization')
-
-         # Translate text to English
+        # Traduce el texto ingresado a ingles
         translated_text = translator_to_english(text)[0]['translation_text']
-
-        # Summarize the translated text
+        # Resume el texto traducido a ingles
         summary_in_english = summarizer(translated_text, max_length=100, min_length=5, do_sample=False)[0]['summary_text']
-
-        # Translate the summary back to Spanish
+        # Traduce el resumen a español
         summary_in_spanish = translator_to_spanish(summary_in_english)[0]['translation_text']
 
         conn = get_db_connection()
@@ -112,6 +109,55 @@ def process():
         conn.close()
 
         return jsonify({"status": "success",
+                        "summary": summary_in_spanish}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+# Ruta para obtener parrafos desde URL y luego conseguir el resumen
+@app.route('/combined', methods=['POST'])
+def combined():
+    url = request.json.get('url')
+    if not url:
+        return jsonify({'error': 'URL is required'}), 400
+    try:
+        response = requests.get(url)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        for element in soup(['nav', 'footer']):
+            element.decompose()
+        paragraphs = [p.get_text(strip=True) for p in soup.find_all('p') if p.get_text(strip=True) not in ['.', '']]
+        if not paragraphs:
+            return jsonify({'error': 'No content found on the page'}), 400
+        for element in soup(['nav', 'footer']):
+            element.decompose()
+        text = ' '.join(paragraphs)
+
+        # Inicializar modelo de IA para resumir texto
+        translator_to_english = pipeline("translation", model="Helsinki-NLP/opus-mt-es-en")
+        translator_to_spanish = pipeline("translation", model="Helsinki-NLP/opus-mt-en-es")
+        summarizer = pipeline('summarization', model= 'sshleifer/distilbart-cnn-12-6', revision='a4f8f3e')
+
+        # Dividir el texto en partes más pequeñas, debido a que el modelo de traducción tiene un límite de longitud de texto
+        max_length = 512
+        text_chunks = [text[i:i+max_length] for i in range(0, len(text), max_length)]
+        summary_in_english = ""
+        for chunk in text_chunks:
+                    translated_text = translator_to_english(chunk)[0]['translation_text']
+                    summary_chunk = summarizer(translated_text, max_length=50, min_length=5, do_sample=False)[0]['summary_text']
+                    summary_in_english += summary_chunk + " "
+
+        summary_in_spanish = translator_to_spanish(summary_in_english.strip())[0]['translation_text']
+
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute('''
+            INSERT INTO combined_results (url, description, input_text, output_text)
+            VALUES (?, ?, ?, ?)
+        ''', (url, text, summary_in_english, summary_in_spanish))
+        conn.commit()
+        conn.close()
+
+        return jsonify({"status": "success",
+                        "original_text": text,
                         "summary": summary_in_spanish}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

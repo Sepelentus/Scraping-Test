@@ -91,11 +91,11 @@ def process():
         translator_to_english = pipeline("translation", model="Helsinki-NLP/opus-mt-es-en")
         translator_to_spanish = pipeline("translation", model="Helsinki-NLP/opus-mt-en-es")
         # Definirle luego un modelo de resumen, actualmente utiliza el modelo sshleifer/distilbart-cnn-12-6, revision a4f8f3e
-        summarizer = pipeline('summarization')
+        summarizer = pipeline('summarization', model= 'facebook/bart-large-cnn')
         # Traduce el texto ingresado a ingles
         translated_text = translator_to_english(text)[0]['translation_text']
         # Resume el texto traducido a ingles
-        summary_in_english = summarizer(translated_text, max_length=100, min_length=5, do_sample=False)[0]['summary_text']
+        summary_in_english = summarizer(translated_text, max_length=200, min_length=30, do_sample=False)[0]['summary_text']
         # Traduce el resumen a español
         summary_in_spanish = translator_to_spanish(summary_in_english)[0]['translation_text']
 
@@ -134,7 +134,7 @@ def combined():
         # Inicializar modelo de IA para resumir texto
         translator_to_english = pipeline("translation", model="Helsinki-NLP/opus-mt-es-en")
         translator_to_spanish = pipeline("translation", model="Helsinki-NLP/opus-mt-en-es")
-        summarizer = pipeline('summarization', model= 'sshleifer/distilbart-cnn-12-6', revision='a4f8f3e')
+        summarizer = pipeline('summarization', model= 'facebook/bart-large-cnn')
 
         # Dividir el texto en partes más pequeñas, debido a que el modelo de traducción tiene un límite de longitud de texto
         max_length = 512

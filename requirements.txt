@@ -21,6 +21,7 @@ numpy==2.2.1
 packaging==24.2
 pandas==2.2.3
 prettytable==0.7.2
+protobuf==5.29.2
 psutil==6.1.1
 pybars3==0.9.7
 PyMeta3==0.5.1
@@ -30,6 +31,7 @@ PyYAML==6.0.2
 regex==2024.11.6
 requests==2.32.3
 safetensors==0.4.5
+sentencepiece==0.2.0
 setuptools==75.6.0
 six==1.17.0
 soupsieve==2.6

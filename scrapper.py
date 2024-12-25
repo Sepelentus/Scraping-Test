@@ -9,6 +9,9 @@ app = Flask(__name__)
 init_db()
 
 #TODO 1: Hacer limpieza de parametros, ya que se esta tomando cosas de la barra de navegacion (etiquetas nav, footer, etc) y no solo del contenido principal de la pagina, tambien agregar excepciones cuando el contenido de la etiqueta p solo sea un punto o un espacio.
+#DONE
+
+#TODO 2: Los parrafos se acumulen hasta encontrar un nuevo h3,h2 o h1, para mantener la jerarquia y orden del contenido.
 
 # Ruta para realizar scraping de una URL y guardar los resultados en la base de datos
 @app.route('/scrape', methods=['POST'])
